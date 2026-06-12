@@ -8,6 +8,15 @@ uses [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
 _Nothing yet._
 
+## [1.0.2] — 2026-06-12
+
+### Fixed
+- **Extra-usage amount.** The API reports money in minor units (cents), so the
+  monthly limit now shows as `155.00 AUD` instead of `15,500`.
+
+### Added
+- The app version is now shown in the footer (e.g. `v1.0.2`).
+
 ## [1.0.1] — 2026-06-12
 
 ### Fixed
@@ -17,8 +26,6 @@ _Nothing yet._
   failures back off exponentially (60→120→240→300s, honouring `Retry-After`).
 - Raised the healthy poll interval from 60s to 90s to stay well under the API's
   rate limit.
-- **Extra-usage amount.** The API reports money in minor units (cents), so the
-  monthly limit now shows as `155.00 AUD` instead of `15,500`.
 
 ## [1.0.0] — 2026-06-12
 
@@ -43,6 +50,7 @@ First public release.
 - Disabled conhost QuickEdit mode so a click no longer freezes the dashboard.
 - Hid the idle terminal cursor while running (restored on exit).
 
-[Unreleased]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Tr1pl3x/claude-usage-meter/releases/tag/v1.0.0

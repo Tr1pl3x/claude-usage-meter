@@ -19,6 +19,8 @@ import datetime
 import urllib.request
 import urllib.error
 
+__version__ = "1.0.2"
+
 # ----------------------------------------------------------------------------
 # Config
 # ----------------------------------------------------------------------------
@@ -223,7 +225,8 @@ def render(usage, sub_type, tier, last_update, note=""):
 
 def credit_line():
     name = CORAL + link("https://github.com/Tr1pl3x", "Pyae Sone") + TAUPE
-    credit = f"© 2026 {name} · vibecoded with my best friend Claude {CORAL}✳{TAUPE}"
+    credit = (f"© 2026 {name} · vibecoded with my best friend Claude "
+              f"{CORAL}✳{TAUPE} · v{__version__}")
     return f"  {DIM}{credit}{RESET}"
 
 

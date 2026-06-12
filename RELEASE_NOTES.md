@@ -1,13 +1,13 @@
 A live terminal dashboard for your Claude plan limits — run it once when you
 clock in and never glance at the in-app /usage screen again.
 
-### What's new in v1.0.1
-- **No more 429 error storms.** Hitting the usage API's rate limit used to spam
-  scrolling errors and never recover. Failures now back off automatically
-  (60→120→240→300s) and the screen stays clean.
+### What's new in v1.0.2
 - **Correct extra-usage amount.** The monthly limit now reads `155.00 AUD`
   instead of `15,500` (the API reports cents).
-- Gentler 90s poll interval to stay under the rate limit.
+- The app version now shows in the footer.
+
+_(v1.0.1 added automatic back-off so usage-API rate limits no longer cause
+scrolling error storms, plus a gentler 90s poll interval.)_
 
 ### Download
 Grab **claude-usage.exe** below and double-click it. No Python or install needed.

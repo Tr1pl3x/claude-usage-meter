@@ -36,6 +36,14 @@ if (git status --porcelain) {
   Fail "You have uncommitted changes. Commit them first (CHANGELOG/notes included)."
 }
 
+# Ensure the in-app __version__ matches the tag (minus the leading 'v').
+$verNoV = $Version.TrimStart('v')
+$m = Select-String -Path 'claude_usage.py' -Pattern '__version__\s*=\s*"([^"]+)"'
+$pyVer = if ($m) { $m.Matches[0].Groups[1].Value } else { $null }
+if ($pyVer -ne $verNoV) {
+  Fail "Version mismatch: claude_usage.py is $pyVer but you asked for $Version. Update __version__ to $verNoV first."
+}
+
 # 2. Build a fresh single-file exe ----------------------------------------------
 Write-Host "==> Stopping any running dashboard so the exe can be overwritten..." -ForegroundColor Cyan
 Stop-Process -Name claude-usage -Force -ErrorAction SilentlyContinue
