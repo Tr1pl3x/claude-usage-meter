@@ -24,8 +24,10 @@ import urllib.error
 # ----------------------------------------------------------------------------
 CREDS_PATH = os.path.join(os.path.expanduser("~"), ".claude", ".credentials.json")
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
-REFRESH_INTERVAL = 60          # seconds between usage polls when healthy
-WAIT_INTERVAL = 15             # seconds between checks while waiting for re-auth
+REFRESH_INTERVAL = 90          # seconds between usage polls when healthy
+WAIT_INTERVAL = 15             # seconds between local checks while waiting for re-auth
+MIN_BACKOFF = 60               # first wait after a network/429 failure
+MAX_BACKOFF = 300              # cap on exponential backoff (5 min)
 BAR_WIDTH = 34
 
 # Colours — 24-bit truecolor tuned to Claude's brand palette.
@@ -74,6 +76,14 @@ class NotSubscriptionLogin(Exception):
     """No subscription OAuth token present (e.g. an API-key install)."""
 
 
+class RateLimited(Exception):
+    """The usage API returned 429. Carries the server's Retry-After if given."""
+
+    def __init__(self, retry_after=None):
+        super().__init__("rate limited")
+        self.retry_after = retry_after
+
+
 def load_creds():
     with open(CREDS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -105,6 +115,13 @@ def fetch_usage(creds):
     except urllib.error.HTTPError as e:
         if e.code == 401:
             raise TokenExpired() from e
+        if e.code == 429:
+            ra = e.headers.get("Retry-After")
+            try:
+                ra = int(ra) if ra else None
+            except (TypeError, ValueError):
+                ra = None
+            raise RateLimited(ra) from e
         raise
 
 
@@ -305,18 +322,18 @@ def main():
     sys.stdout.write(HIDE_CURSOR)
     atexit.register(lambda: (sys.stdout.write(SHOW_CURSOR), sys.stdout.flush()))
 
-    note = ""
     first = True
+    fails = 0  # consecutive network/429 failures, for exponential backoff
     while True:
         interval = REFRESH_INTERVAL
+        now = lambda: datetime.datetime.now().strftime("%I:%M:%S %p").lstrip("0")
         try:
             creds = load_creds()
             oauth = creds.get("claudeAiOauth", {})
-            usage = fetch_usage(creds)  # raises TokenExpired / NotSubscriptionLogin
-            stamp = datetime.datetime.now().strftime("%I:%M:%S %p").lstrip("0")
+            usage = fetch_usage(creds)
             frame = render(usage, oauth.get("subscriptionType"),
-                           oauth.get("rateLimitTier"), stamp, note)
-            note = ""
+                           oauth.get("rateLimitTier"), now(), "")
+            fails = 0
         except KeyboardInterrupt:
             clear(); print("bye 👋"); return 0
         except NotSubscriptionLogin:
@@ -330,7 +347,6 @@ def main():
                  "windows to show, so there's nothing to display."],
                 "Ctrl-C to quit")
         except TokenExpired:
-            stamp = datetime.datetime.now().strftime("%I:%M:%S %p").lstrip("0")
             frame = render_message(
                 "waiting for login",
                 ["Your Claude access token has expired.",
@@ -339,23 +355,36 @@ def main():
                  "dashboard will pick up the refreshed login automatically.",
                  "It won't touch your credentials — only Claude Code can",
                  "refresh them."],
-                f"checking every {WAIT_INTERVAL}s · {stamp} · Ctrl-C to quit")
+                f"checking every {WAIT_INTERVAL}s · {now()} · Ctrl-C to quit")
             interval = WAIT_INTERVAL
+        except RateLimited as e:
+            fails += 1
+            interval = e.retry_after or min(MIN_BACKOFF * 2 ** (fails - 1), MAX_BACKOFF)
+            frame = render_message(
+                "rate limited — backing off",
+                ["Anthropic's usage API returned 429 (too many requests).",
+                 "",
+                 "This is normal and clears itself — the dashboard now waits",
+                 "longer between checks until it recovers. Your actual usage",
+                 "is unaffected; only the polling is paused."],
+                f"retrying in {interval}s · {now()} · Ctrl-C to quit")
         except Exception as e:  # noqa: BLE001 — network blip etc.; keep alive
-            note = f"offline — {type(e).__name__}: {e}  (retrying)"
-            interval = WAIT_INTERVAL
-            frame = None
+            fails += 1
+            interval = min(MIN_BACKOFF * 2 ** (fails - 1), MAX_BACKOFF)
+            frame = render_message(
+                "offline — retrying",
+                [f"Couldn't reach the usage API ({type(e).__name__}).",
+                 "",
+                 "Retrying automatically with backoff. Check your network",
+                 "if this persists."],
+                f"retrying in {interval}s · {now()} · Ctrl-C to quit")
 
-        if frame is not None:
-            if first:
-                grow_console(68, frame.count("\n") + 2)
-                first = False
-            clear()
-            sys.stdout.write(frame)
-            sys.stdout.flush()
-        else:
-            sys.stdout.write("\n  " + AMBER + note + RESET + "\n")
-            sys.stdout.flush()
+        if first:
+            grow_console(68, frame.count("\n") + 2)
+            first = False
+        clear()
+        sys.stdout.write(frame)
+        sys.stdout.flush()
 
         try:
             time.sleep(interval)

@@ -6,7 +6,13 @@ uses [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+- **Rate-limit handling.** A single 429 from the usage API used to trigger a
+  15s retry storm that piled up scrolling "offline" lines and never recovered.
+  Now every state (including errors) redraws one cleared screen, and network/429
+  failures back off exponentially (60→120→240→300s, honouring `Retry-After`).
+- Raised the healthy poll interval from 60s to 90s to stay well under the API's
+  rate limit.
 
 ## [1.0.0] — 2026-06-12
 
