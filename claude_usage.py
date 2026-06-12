@@ -180,7 +180,7 @@ def window_lines(label, win):
 
 def render(usage, sub_type, tier, last_update, note=""):
     lines = []
-    title = f"CLAUDE USAGE"
+    title = f" CLAUDE USAGE"
     plan = f"{sub_type or '?'}".title()
     if tier:
         plan += f" · {tier}"
