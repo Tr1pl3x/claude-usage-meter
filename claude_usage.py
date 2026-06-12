@@ -10,6 +10,7 @@ Stdlib only — no pip dependencies. Reads your existing Claude Code OAuth
 token from ~/.claude/.credentials.json and auto-refreshes it when it expires.
 """
 
+import atexit
 import json
 import os
 import sys
@@ -34,6 +35,8 @@ def _fg(r, g, b):
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
+HIDE_CURSOR = "\033[?25l"
+SHOW_CURSOR = "\033[?25h"
 
 CORAL = _fg(217, 119, 87)   # #D97757 — Claude's signature accent
 AMBER = _fg(224, 164, 88)   # #E0A458 — mid usage
@@ -296,6 +299,11 @@ def main():
         print(f"Could not find {CREDS_PATH}.")
         print("Log in with Claude Code at least once, then run this again.")
         return 1
+
+    # Hide the blinking cursor while the dashboard owns the screen; always
+    # restore it on exit so the shell behaves normally afterwards.
+    sys.stdout.write(HIDE_CURSOR)
+    atexit.register(lambda: (sys.stdout.write(SHOW_CURSOR), sys.stdout.flush()))
 
     note = ""
     first = True
