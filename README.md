@@ -14,6 +14,13 @@ It shows the same numbers Anthropic shows you:
 It refreshes every 60 seconds and the bars warm from coral → amber → rust as
 you approach the limit.
 
+## Download
+
+Grab the latest **`claude-usage.exe`** from the
+[**Releases**](https://github.com/Tr1pl3x/claude-usage-meter/releases/latest)
+page and double-click it. No Python or install needed. (Prefer to build it
+yourself? See [Rebuilding after edits](#rebuilding-after-edits).)
+
 ## Requirements
 
 - **A Claude.ai subscription login on this machine.** The tool piggybacks on
