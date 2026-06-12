@@ -23,10 +23,8 @@ import urllib.error
 # ----------------------------------------------------------------------------
 CREDS_PATH = os.path.join(os.path.expanduser("~"), ".claude", ".credentials.json")
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
-TOKEN_URL = "https://api.anthropic.com/v1/oauth/token"
-CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"  # Claude Code public OAuth client
-REFRESH_INTERVAL = 60          # seconds between usage polls
-TOKEN_SKEW = 120               # refresh the token this many seconds before it expires
+REFRESH_INTERVAL = 60          # seconds between usage polls when healthy
+WAIT_INTERVAL = 15             # seconds between checks while waiting for re-auth
 BAR_WIDTH = 34
 
 # Colours — 24-bit truecolor tuned to Claude's brand palette.
@@ -57,73 +55,54 @@ def link(url, text):
 
 
 # ----------------------------------------------------------------------------
-# Credentials / token handling
+# Credentials / token handling — STRICTLY READ-ONLY.
+#
+# Anthropic's refresh tokens are single-use: using one invalidates it and issues
+# a new one. Claude Code owns that rotation. If this tool refreshed too, it would
+# invalidate Claude Code's stored token and silently break its login. So we never
+# refresh and never write to the credentials file — we only read the access token
+# Claude Code already maintains, and re-read it each cycle to pick up its rotations.
 # ----------------------------------------------------------------------------
+class TokenExpired(Exception):
+    """The access token has expired; only Claude Code can mint a new one."""
+
+
+class NotSubscriptionLogin(Exception):
+    """No subscription OAuth token present (e.g. an API-key install)."""
+
+
 def load_creds():
     with open(CREDS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_creds(creds):
-    """Atomic write so a crash mid-write can't corrupt your login."""
-    tmp = CREDS_PATH + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(creds, f, indent=2)
-    os.replace(tmp, CREDS_PATH)
-
-
-def refresh_token(creds):
-    """Exchange the refresh token for a fresh access token and persist it."""
-    oauth = creds["claudeAiOauth"]
-    body = json.dumps({
-        "grant_type": "refresh_token",
-        "refresh_token": oauth["refreshToken"],
-        "client_id": CLIENT_ID,
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        TOKEN_URL, data=body, method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    oauth["accessToken"] = data["access_token"]
-    if data.get("refresh_token"):
-        oauth["refreshToken"] = data["refresh_token"]
-    if data.get("expires_in"):
-        oauth["expiresAt"] = int(time.time() * 1000) + int(data["expires_in"]) * 1000
-    save_creds(creds)
-    return creds
-
-
-def valid_token(creds):
-    """Return a non-expired access token, refreshing if needed."""
-    oauth = creds["claudeAiOauth"]
+def read_token(creds):
+    """Return the current, unexpired access token — or raise, never refresh."""
+    oauth = creds.get("claudeAiOauth")
+    if not oauth or not oauth.get("accessToken"):
+        raise NotSubscriptionLogin()
     expires_at = oauth.get("expiresAt", 0) / 1000
-    if time.time() >= expires_at - TOKEN_SKEW:
-        creds = refresh_token(creds)
-        oauth = creds["claudeAiOauth"]
+    if time.time() >= expires_at:
+        raise TokenExpired()
     return oauth["accessToken"]
 
 
 def fetch_usage(creds):
-    """Fetch usage JSON, refreshing the token once on a 401."""
-    for attempt in range(2):
-        token = valid_token(creds)
-        req = urllib.request.Request(USAGE_URL, headers={
-            "Authorization": "Bearer " + token,
-            "anthropic-beta": "oauth-2025-04-20",
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        })
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            if e.code == 401 and attempt == 0:
-                refresh_token(creds)
-                continue
-            raise
-    raise RuntimeError("could not fetch usage")
+    """Fetch usage JSON read-only. A 401 means Claude Code must re-auth."""
+    token = read_token(creds)
+    req = urllib.request.Request(USAGE_URL, headers={
+        "Authorization": "Bearer " + token,
+        "anthropic-beta": "oauth-2025-04-20",
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            raise TokenExpired() from e
+        raise
 
 
 # ----------------------------------------------------------------------------
@@ -216,10 +195,27 @@ def render(usage, sub_type, tier, last_update, note=""):
     lines.append(f"  {DIM}{foot}{RESET}")
     if note:
         lines.append(f"  {AMBER}{note}{RESET}")
+    lines.append(credit_line())
+    lines.append("")
+    return "\n".join(lines)
+
+
+def credit_line():
     name = CORAL + link("https://github.com/Tr1pl3x", "Pyae Sone") + TAUPE
     credit = f"© 2026 {name} · vibecoded with my best friend Claude {CORAL}✳{TAUPE}"
-    lines.append(f"  {DIM}{credit}{RESET}")
-    lines.append("")
+    return f"  {DIM}{credit}{RESET}"
+
+
+def render_message(headline, body, footer):
+    """A small framed screen for non-data states (waiting for re-auth, etc.)."""
+    lines = ["",
+             f"  {CORAL}{BOLD}✳ CLAUDE USAGE{RESET}   {DIM}{headline}{RESET}",
+             f"  {GREY}{'─' * (BAR_WIDTH + 26)}{RESET}",
+             ""]
+    for row in body:
+        lines.append(f"  {CREAM}{row}{RESET}")
+    lines += ["", f"  {GREY}{'─' * (BAR_WIDTH + 26)}{RESET}",
+              f"  {DIM}{footer}{RESET}", credit_line(), ""]
     return "\n".join(lines)
 
 
@@ -285,36 +281,59 @@ def main():
     note = ""
     first = True
     while True:
+        interval = REFRESH_INTERVAL
         try:
             creds = load_creds()
-            sub_type = creds["claudeAiOauth"].get("subscriptionType")
-            tier = creds["claudeAiOauth"].get("rateLimitTier")
-            usage = fetch_usage(creds)
+            oauth = creds.get("claudeAiOauth", {})
+            usage = fetch_usage(creds)  # raises TokenExpired / NotSubscriptionLogin
             stamp = datetime.datetime.now().strftime("%I:%M:%S %p").lstrip("0")
-            frame = render(usage, sub_type, tier, stamp, note)
+            frame = render(usage, oauth.get("subscriptionType"),
+                           oauth.get("rateLimitTier"), stamp, note)
+            note = ""
+        except KeyboardInterrupt:
+            clear(); print("bye 👋"); return 0
+        except NotSubscriptionLogin:
+            frame = render_message(
+                "no subscription login",
+                ["No \"Sign in with Claude\" token was found in",
+                 f"{CREDS_PATH}.",
+                 "",
+                 "This dashboard reads the OAuth login from Claude Code",
+                 "(Pro or Max). API-key installs have no plan-limit",
+                 "windows to show, so there's nothing to display."],
+                "Ctrl-C to quit")
+        except TokenExpired:
+            stamp = datetime.datetime.now().strftime("%I:%M:%S %p").lstrip("0")
+            frame = render_message(
+                "waiting for login",
+                ["Your Claude access token has expired.",
+                 "",
+                 "Open Claude Code (or run any `claude` command) and this",
+                 "dashboard will pick up the refreshed login automatically.",
+                 "It won't touch your credentials — only Claude Code can",
+                 "refresh them."],
+                f"checking every {WAIT_INTERVAL}s · {stamp} · Ctrl-C to quit")
+            interval = WAIT_INTERVAL
+        except Exception as e:  # noqa: BLE001 — network blip etc.; keep alive
+            note = f"offline — {type(e).__name__}: {e}  (retrying)"
+            interval = WAIT_INTERVAL
+            frame = None
+
+        if frame is not None:
             if first:
-                # Fit the window snugly to the dashboard, growing it in for flair.
                 grow_console(68, frame.count("\n") + 2)
                 first = False
             clear()
             sys.stdout.write(frame)
             sys.stdout.flush()
-            note = ""
-        except KeyboardInterrupt:
-            clear()
-            print("bye 👋")
-            return 0
-        except Exception as e:  # noqa: BLE001 — keep the dashboard alive
-            note = f"offline — {type(e).__name__}: {e}  (retrying)"
+        else:
             sys.stdout.write("\n  " + AMBER + note + RESET + "\n")
             sys.stdout.flush()
 
         try:
-            time.sleep(REFRESH_INTERVAL)
+            time.sleep(interval)
         except KeyboardInterrupt:
-            clear()
-            print("bye 👋")
-            return 0
+            clear(); print("bye 👋"); return 0
 
 
 if __name__ == "__main__":

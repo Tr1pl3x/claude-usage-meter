@@ -39,9 +39,21 @@ Double-click **`dist\claude-usage.exe`** (or run it from a terminal). That's it.
 Press `Ctrl-C` to quit.
 
 No Python needed to *run* the exe. You do need to have logged into Claude Code
-at least once on this machine — the tool reads your existing OAuth token from
-`%USERPROFILE%\.claude\.credentials.json` and refreshes it automatically when
-it expires, so it keeps working all day unattended.
+at least once on this machine — the tool **reads** your existing OAuth token
+from `%USERPROFILE%\.claude\.credentials.json`.
+
+### It is strictly read-only
+
+The dashboard **never writes to your credentials and never refreshes your
+login.** Anthropic's refresh tokens are single-use (each refresh invalidates the
+last), and Claude Code owns that rotation — so if this tool refreshed too, it
+would silently break Claude Code's login. Instead it just reads the access token
+Claude Code already keeps fresh, re-reading every cycle to pick up rotations.
+
+Access tokens last ~8 hours. As long as you use Claude Code during the day it
+stays valid automatically. If it ever expires (e.g. you didn't open Claude Code
+for 8h), the dashboard shows a *"waiting for login"* screen and resumes the
+moment you next run any `claude` command — no restart needed.
 
 ### Tip: pin it
 Right-click `claude-usage.exe` → *Send to* → *Desktop (create shortcut)* so
@@ -99,8 +111,8 @@ exe lands in `dist\`.
 ## How it works
 
 - `GET https://api.anthropic.com/api/oauth/usage` — the utilisation numbers
-- `POST https://api.anthropic.com/v1/oauth/token` — token refresh when expired
-- Token + plan info read from `~/.claude/.credentials.json`
+- Access token + plan info **read** from `~/.claude/.credentials.json`
+  (read-only — see "It is strictly read-only" above)
 
 Pure standard library — no third-party runtime dependencies.
 
