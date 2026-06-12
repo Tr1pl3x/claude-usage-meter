@@ -116,6 +116,19 @@ exe lands in `dist\`.
 
 Pure standard library — no third-party runtime dependencies.
 
+## Known limitations
+
+- **Built on undocumented internal endpoints.** The usage endpoint and
+  credential format are internal to Claude Code, not a public/stable API. A
+  future Claude Code update could change the endpoint, the response shape, or
+  where/how the token is stored, which would stop the dashboard from working.
+  This is expected — **if/when that happens, the project will be updated to
+  realign with the new behaviour.** If it suddenly shows "offline" or empty
+  data after a Claude Code update, check back here for a fix (or open an issue).
+- **macOS isn't supported yet** — credentials live in the Keychain there, not a
+  file. Windows and Linux only for now.
+- **Numbers can lag by up to the refresh interval** (60s when healthy).
+
 ## Disclaimer
 
 This is an **unofficial, community tool** and is **not affiliated with or
