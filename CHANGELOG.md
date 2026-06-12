@@ -17,6 +17,10 @@ _Nothing yet._
 ### Added
 - **Tunable poll interval.** Override with the `CLAUDE_USAGE_INTERVAL` env var
   or a numeric argument, e.g. `claude-usage.exe 180`. Floored at 30s.
+- **Live countdowns.** The "resets in" timers now tick every second
+  (`H:MM:SS`, or `Dd HH:MM:SS` for the weekly window). The screen repaints once
+  a second without re-hitting the API — data is still fetched once per interval.
+- Simplified footer: `vibe coded with Claude ✳ · vX.Y.Z`.
 
 ## [1.0.2] — 2026-06-12
 
