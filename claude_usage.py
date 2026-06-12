@@ -50,6 +50,12 @@ GREY = TAUPE
 CYAN = CORAL
 
 
+def link(url, text):
+    """Wrap text in an OSC 8 terminal hyperlink (clickable in modern terminals,
+    plain text everywhere else)."""
+    return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
+
+
 # ----------------------------------------------------------------------------
 # Credentials / token handling
 # ----------------------------------------------------------------------------
@@ -209,7 +215,10 @@ def render(usage, sub_type, tier, last_update, note=""):
     foot = f"refreshing every {REFRESH_INTERVAL}s · last update {last_update} · Ctrl-C to quit"
     lines.append(f"  {DIM}{foot}{RESET}")
     if note:
-        lines.append(f"  {YELLOW}{note}{RESET}")
+        lines.append(f"  {AMBER}{note}{RESET}")
+    name = CORAL + link("https://github.com/Tr1pl3x", "Pyae Sone") + TAUPE
+    credit = f"© 2026 {name} · vibecoded with my best friend Claude {CORAL}✳{TAUPE}"
+    lines.append(f"  {DIM}{credit}{RESET}")
     lines.append("")
     return "\n".join(lines)
 
@@ -297,7 +306,7 @@ def main():
             return 0
         except Exception as e:  # noqa: BLE001 — keep the dashboard alive
             note = f"offline — {type(e).__name__}: {e}  (retrying)"
-            sys.stdout.write("\n  " + YELLOW + note + RESET + "\n")
+            sys.stdout.write("\n  " + AMBER + note + RESET + "\n")
             sys.stdout.flush()
 
         try:
