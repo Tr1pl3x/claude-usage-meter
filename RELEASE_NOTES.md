@@ -1,13 +1,15 @@
 A live terminal dashboard for your Claude plan limits — run it once when you
 clock in and never glance at the in-app /usage screen again.
 
-### What's new in v1.0.2
-- **Correct extra-usage amount.** The monthly limit now reads `155.00 AUD`
-  instead of `15,500` (the API reports cents).
-- The app version now shows in the footer.
+### What's new in v1.0.3
+- **Fewer rate-limit (429) hiccups.** The default poll interval is now 120s
+  (matching Anthropic's own usage screen), so the API rate-limits far less often.
+- **Tunable interval.** Poll slower if you like: `claude-usage.exe 180`, or set
+  the `CLAUDE_USAGE_INTERVAL` environment variable. Minimum 30s.
 
-_(v1.0.1 added automatic back-off so usage-API rate limits no longer cause
-scrolling error storms, plus a gentler 90s poll interval.)_
+_(Earlier 1.0.x releases added automatic back-off for rate limits, a clean
+single-screen error state, the correct extra-usage amount, and a version in the
+footer.)_
 
 ### Download
 Grab **claude-usage.exe** below and double-click it. No Python or install needed.

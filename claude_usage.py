@@ -19,14 +19,15 @@ import datetime
 import urllib.request
 import urllib.error
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 # ----------------------------------------------------------------------------
 # Config
 # ----------------------------------------------------------------------------
 CREDS_PATH = os.path.join(os.path.expanduser("~"), ".claude", ".credentials.json")
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
-REFRESH_INTERVAL = 90          # seconds between usage polls when healthy
+REFRESH_INTERVAL = 120         # default seconds between polls; overridable (see resolve_interval)
+MIN_INTERVAL = 30              # floor — don't let anyone hammer the API
 WAIT_INTERVAL = 15             # seconds between local checks while waiting for re-auth
 MIN_BACKOFF = 60               # first wait after a network/429 failure
 MAX_BACKOFF = 300              # cap on exponential backoff (5 min)
@@ -314,7 +315,25 @@ def grow_console(cols, rows):
     set_console_size(cols, rows)
 
 
+def resolve_interval():
+    """Poll interval in seconds. Override via the CLAUDE_USAGE_INTERVAL env var
+    or a numeric command-line argument (e.g. `claude-usage.exe 180`). Floored at
+    MIN_INTERVAL so nobody can hammer the API. Higher = fewer 429s, less 'live'."""
+    raw = os.environ.get("CLAUDE_USAGE_INTERVAL")
+    for arg in sys.argv[1:]:
+        token = arg.lstrip("-")
+        if token.replace(".", "", 1).isdigit():
+            raw = token
+            break
+    try:
+        return max(MIN_INTERVAL, int(float(raw)))
+    except (TypeError, ValueError):
+        return REFRESH_INTERVAL
+
+
 def main():
+    global REFRESH_INTERVAL
+    REFRESH_INTERVAL = resolve_interval()
     enable_ansi()
     if not os.path.exists(CREDS_PATH):
         print(f"Could not find {CREDS_PATH}.")

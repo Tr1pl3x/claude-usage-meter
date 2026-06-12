@@ -62,6 +62,19 @@ stays valid automatically. If it ever expires (e.g. you didn't open Claude Code
 for 8h), the dashboard shows a *"waiting for login"* screen and resumes the
 moment you next run any `claude` command — no restart needed.
 
+### Polling speed
+
+By default it polls every **120 seconds** (matching Anthropic's own usage
+screen, which keeps you well under the API's rate limit). To poll slower, pass a
+number of seconds or set an environment variable:
+
+```powershell
+claude-usage.exe 180                 # poll every 180s
+$env:CLAUDE_USAGE_INTERVAL = 300     # or via env var (then run the exe)
+```
+
+Minimum is 30s. Higher = fewer rate-limit (429) hiccups, slightly less "live".
+
 ### Tip: pin it
 Right-click `claude-usage.exe` → *Send to* → *Desktop (create shortcut)* so
 clocking in is a single double-click.
