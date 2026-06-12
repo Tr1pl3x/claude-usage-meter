@@ -128,6 +128,10 @@ Pure standard library — no third-party runtime dependencies.
 - **macOS isn't supported yet** — credentials live in the Keychain there, not a
   file. Windows and Linux only for now.
 - **Numbers can lag by up to the refresh interval** (60s when healthy).
+- **If it ever looks frozen** (timestamp stuck, title bar shows *"Select"*), the
+  classic console was put into text-selection mode by a click — press **Esc** to
+  resume. The app disables QuickEdit mode at startup to prevent this, but if your
+  console overrides that, Esc always unfreezes it.
 
 ## Disclaimer
 

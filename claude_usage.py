@@ -225,10 +225,29 @@ def render_message(headline, body, footer):
 def enable_ansi():
     if os.name == "nt":
         os.system("")  # turns on VT processing in modern Windows terminals
+        disable_quick_edit()
     # Windows consoles default to cp1252, which can't render the bar glyphs.
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):
+        pass
+
+
+def disable_quick_edit():
+    """Turn off conhost's QuickEdit mode. With it on, a single click puts the
+    console into 'Select' mode and *freezes the program* until you press Esc —
+    which makes a live dashboard look stuck. Harmless no-op in Windows Terminal."""
+    try:
+        import ctypes
+        k = ctypes.windll.kernel32
+        ENABLE_EXTENDED_FLAGS = 0x0080
+        ENABLE_QUICK_EDIT_MODE = 0x0040
+        h_in = k.GetStdHandle(-10)  # STD_INPUT_HANDLE
+        mode = ctypes.c_uint()
+        if k.GetConsoleMode(h_in, ctypes.byref(mode)):
+            new = (mode.value & ~ENABLE_QUICK_EDIT_MODE) | ENABLE_EXTENDED_FLAGS
+            k.SetConsoleMode(h_in, new)
+    except Exception:  # noqa: BLE001 — cosmetic; never fatal
         pass
 
 
