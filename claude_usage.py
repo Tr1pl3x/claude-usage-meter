@@ -202,12 +202,13 @@ def render(usage, sub_type, tier, last_update, note=""):
 
     extra = usage.get("extra_usage")
     if extra and extra.get("is_enabled"):
-        used = extra.get("used_credits") or 0.0
-        limit = extra.get("monthly_limit") or 0
+        # The API reports money in minor units (cents): 15500 == $155.00 AUD.
+        used = (extra.get("used_credits") or 0.0) / 100
+        limit = (extra.get("monthly_limit") or 0) / 100
         cur = extra.get("currency") or ""
         lines.append("")
         lines.append(f"  {CREAM}{BOLD}{'Extra usage':<14}{RESET} "
-                     f"{CORAL}{used:,.2f}{RESET} / {limit:,} {cur} used")
+                     f"{CORAL}{used:,.2f}{RESET} / {limit:,.2f} {cur} used")
 
     lines.append("")
     lines.append(f"  {GREY}{'─' * (BAR_WIDTH + 26)}{RESET}")

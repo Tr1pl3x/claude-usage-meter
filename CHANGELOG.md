@@ -13,6 +13,8 @@ uses [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
   failures back off exponentially (60→120→240→300s, honouring `Retry-After`).
 - Raised the healthy poll interval from 60s to 90s to stay well under the API's
   rate limit.
+- **Extra-usage amount.** The API reports money in minor units (cents), so the
+  monthly limit now shows as `155.00 AUD` instead of `15,500`.
 
 ## [1.0.0] — 2026-06-12
 
