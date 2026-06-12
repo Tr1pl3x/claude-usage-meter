@@ -6,13 +6,14 @@ clock in, leave it on a second monitor, and stop glancing at the in-app
 
 It shows the same numbers Anthropic shows you:
 
-- **5-hour window** utilisation + when it resets
+- **5-hour window** utilisation + a **live countdown** to when it resets
 - **7-day window** utilisation + reset
 - Per-model weekly windows (Opus / Sonnet) when present
 - Extra-usage credits
 
-It refreshes every 60 seconds and the bars warm from coral → amber → rust as
-you approach the limit.
+The reset timers tick down every second, and the bars warm from coral → amber →
+rust as you approach the limit. Usage data is fetched every 120 seconds (see
+[Polling speed](#polling-speed)).
 
 ## Download
 
@@ -147,7 +148,8 @@ Pure standard library — no third-party runtime dependencies.
   data after a Claude Code update, check back here for a fix (or open an issue).
 - **macOS isn't supported yet** — credentials live in the Keychain there, not a
   file. Windows and Linux only for now.
-- **Numbers can lag by up to the refresh interval** (60s when healthy).
+- **Numbers can lag by up to the poll interval** (120s by default; the reset
+  countdowns still tick live every second in between).
 - **If it ever looks frozen** (timestamp stuck, title bar shows *"Select"*), the
   classic console was put into text-selection mode by a click — press **Esc** to
   resume. The app disables QuickEdit mode at startup to prevent this, but if your

@@ -3,11 +3,13 @@ claude-usage — a live terminal dashboard for your Claude plan limits.
 
 Run it when you clock in and leave it open. It polls Anthropic for your
 5-hour / 7-day rate-limit utilisation (the same numbers the in-app /usage
-screen shows) and redraws every minute, so you never have to glance at the
-Claude window again.
+screen shows), repaints every second so the reset countdowns tick live, and
+fetches fresh data every couple of minutes — so you never have to glance at
+the Claude window again.
 
-Stdlib only — no pip dependencies. Reads your existing Claude Code OAuth
-token from ~/.claude/.credentials.json and auto-refreshes it when it expires.
+Stdlib only — no pip dependencies. Strictly read-only: it reads the existing
+Claude Code OAuth token from ~/.claude/.credentials.json and never writes to
+or refreshes it (Claude Code owns that).
 """
 
 import atexit
