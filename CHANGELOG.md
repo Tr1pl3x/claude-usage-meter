@@ -6,6 +6,10 @@ uses [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [1.0.1] — 2026-06-12
+
 ### Fixed
 - **Rate-limit handling.** A single 429 from the usage API used to trigger a
   15s retry storm that piled up scrolling "offline" lines and never recovered.
@@ -39,5 +43,6 @@ First public release.
 - Disabled conhost QuickEdit mode so a click no longer freezes the dashboard.
 - Hid the idle terminal cursor while running (restored on exit).
 
-[Unreleased]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Tr1pl3x/claude-usage-meter/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Tr1pl3x/claude-usage-meter/releases/tag/v1.0.0
