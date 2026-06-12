@@ -1,0 +1,22 @@
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS / editor cruft
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+
+# Never commit credentials — the tool reads these from the user's own
+# ~/.claude directory, but guard against accidental copies landing here.
+.credentials.json
+*credentials*.json
