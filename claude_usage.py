@@ -56,12 +56,6 @@ GREY = TAUPE
 CYAN = CORAL
 
 
-def link(url, text):
-    """Wrap text in an OSC 8 terminal hyperlink (clickable in modern terminals,
-    plain text everywhere else)."""
-    return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
-
-
 # ----------------------------------------------------------------------------
 # Credentials / token handling — STRICTLY READ-ONLY.
 #
@@ -225,9 +219,7 @@ def render(usage, sub_type, tier, last_update, note=""):
 
 
 def credit_line():
-    name = CORAL + link("https://github.com/Tr1pl3x", "Pyae Sone") + TAUPE
-    credit = (f"© 2026 {name} · vibecoded with my best friend Claude "
-              f"{CORAL}✳{TAUPE} · v{__version__}")
+    credit = f"vibe coded with Claude {CORAL}✳{TAUPE} · v{__version__}"
     return f"  {DIM}{credit}{RESET}"
 
 
